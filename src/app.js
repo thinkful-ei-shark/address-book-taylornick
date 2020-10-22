@@ -38,8 +38,7 @@ app.use(function validateBearerToken(req, res, next) {
 // Post Request for all addresses
 app.post('/address', (req, res) => {
   const { firstName, lastName, address1,
-    address2 = '', city, state } = req.body;
-  let { zip } = req.body;
+    address2 = '', city, state, zip } = req.body;
 
   if (!firstName)
     res.status(400).json({ error: 'Please give a first name.' });
@@ -62,10 +61,9 @@ app.post('/address', (req, res) => {
   if (state.length !== 2)
     res.status(400).json({ error: 'Please enter a state that is two characters.' });
 
-  if (zip.trim().length !== 5)
+  if (typeof zip !== 'number' || zip.toString().length !== 5)
     res.status(400).json({ error: 'Please enter a zipcode that is five numbers.' });
 
-  zip = parseInt(zip);
   const id = uuid();
   const address = {
     id,
