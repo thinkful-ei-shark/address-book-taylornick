@@ -1,3 +1,5 @@
+// Imports
+
 require('dotenv').config();
 const express = require('express');
 const morgan = require('morgan');
@@ -5,24 +7,35 @@ const cors = require('cors');
 const helmet = require('helmet');
 const { PORT, NODE_ENV } = require('./config');
 const { addresses, uuid } = require('./addressBook.js');
-const addressBook = require('./addressBook.js');
-
-console.log(addresses);
 
 const app = express();
-app.use(express.json());
 
 const morganOption = (NODE_ENV === 'production') ? 'tiny' : 'common';
 
+// Middleware
 app.use(morgan(morganOption));
 app.use(helmet());
 app.use(cors());
+app.use(express.json());
 
 app.get('/address', (req, res) => {
   res
     .json(addresses);
 });
 
+// Token Validation
+app.use(function validateBearerToken(req, res, next) {
+  const apiToken = process.env.API_TOKEN;
+  const authToken = req.get('Authorization');
+  console.log('validate bearer token middleware');
+
+  if(!authToken || authToken.split(' ')[1] !== apiToken) {
+    return res.status(401).json({ error: 'Unauthorized request' });
+  }
+  next();
+});
+
+// Post Request for all addresses
 app.post('/address', (req, res) => {
   const { firstName, lastName, address1,
     address2 = '', city, state } = req.body;
@@ -65,7 +78,7 @@ app.post('/address', (req, res) => {
     zip
   };
 
-  addressBook.push(address);
+  addresses.push(address);
 
   res
     .status(201)
@@ -74,6 +87,20 @@ app.post('/address', (req, res) => {
 });
 
 
+// Delete Request for a specific address
+app.delete('/address/:id', (req, res) => {
+  const { id } = req.params;
+  const index = addresses.findIndex(u => u.id === id);
+
+  if (index === -1) {
+    return res.status(404).send('Address not found');
+  }
+
+  addresses.splice(index, 1);
+  res.status(240).end();
+});
+
+// Error Handling
 app.use(function errorHandler(error, req, res, next) {
   let response;
   if (NODE_ENV === 'production') {
